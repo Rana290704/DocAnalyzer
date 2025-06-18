@@ -99,7 +99,7 @@ def analyze_document_with_openai(text, doc_type):
     return resp.choices[0].message.content.strip()
 
 # Streamlit UI
-st.title("Legal Document Analyzer (with OCR)")
+st.title("Legal Document Analyzer")
 
 uploaded_file = st.file_uploader("Upload a PDF, DOCX, or image", type=["pdf","docx","png","jpg","jpeg"])
 if not uploaded_file:
