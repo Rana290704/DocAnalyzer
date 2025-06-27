@@ -145,7 +145,8 @@ else:
         st.subheader("Analysis")
         st.write(main_analysis)
 
-        if red_flags:
+        # Show red flags only if they exist
+        if red_flags and red_flags != "No Red Flags identified":
             # Red Flags heading with emoji
             st.markdown("🚩 **Red Flags**")
             # Display each flagged excerpt and explanation
