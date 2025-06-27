@@ -66,24 +66,23 @@ def classify_document(text):
     resp = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
-            {"role":"system","content":"You are a legal expert familiar with Indian law."},
-            {"role":"user","content":prompt}
+            {"role": "system", "content": "You are a legal expert familiar with Indian law."},
+            {"role": "user", "content": prompt}
         ],
         max_tokens=150,
         temperature=0.7
     )
     return resp.choices[0].message.content.strip()
 
-# Analysis via OpenAI, including Red Flags
+# Analysis via OpenAI, including Red Flags with excerpts
 def analyze_document_with_openai(text, doc_type):
     prompt = f"""
-    Analyze the following {doc_type} for ambiguous clauses, missing terms, and non-compliance with Indian law.
-    Provide:
+    Analyze the following {doc_type} for:
     1. Ambiguous Clauses
     2. Missing Terms
     3. Potential Non-Compliance
     4. Suggestions
-    5. Red Flags (critical issues that must be fixed before submission)
+    5. 🚩 Red Flags: For each critical issue, quote the exact text (clause or line) from the document and explain why it must be fixed before submission.
 
     Document:
     {text[:2000]}
@@ -91,8 +90,8 @@ def analyze_document_with_openai(text, doc_type):
     resp = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
-            {"role":"system","content":"You are a legal expert trained in Indian law."},
-            {"role":"user","content":prompt}
+            {"role": "system", "content": "You are a legal expert trained in Indian law."},
+            {"role": "user", "content": prompt}
         ],
         max_tokens=2000,
         temperature=0.5
@@ -102,7 +101,7 @@ def analyze_document_with_openai(text, doc_type):
 # Streamlit UI
 st.title("Legal Document Analyzer")
 
-uploaded_file = st.file_uploader("Upload a PDF, DOCX, or image", type=["pdf","docx","png","jpg","jpeg"])
+uploaded_file = st.file_uploader("Upload a PDF, DOCX, or image", type=["pdf", "docx", "png", "jpg", "jpeg"])
 if not uploaded_file:
     st.info("Please upload a file to get started.")
 else:
@@ -115,14 +114,11 @@ else:
         if len(text.strip()) < 50 and file_bytes:
             st.info("Performing OCR on PDF pages…")
             text = ocr_pdf_bytes(file_bytes)
-
     elif mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
         text, _ = extract_docx_text(uploaded_file)
-
     elif mime.startswith("image/"):
         st.info("Extracting text via OCR from image…")
         text = extract_image_text(uploaded_file)
-
     else:
         st.error("Unsupported file type.")
         st.stop()
@@ -138,12 +134,11 @@ else:
         with st.spinner("Analyzing…"):
             analysis = analyze_document_with_openai(text, doc_type)
 
-        # Split out Red Flags section if present
+        # Separate main analysis and red flags
         red_flags = None
         main_analysis = analysis
-        if "Red Flags" in analysis:
-            parts = analysis.split("Red Flags")
-            # parts[0] ends before the keyword, parts[1] contains the section
+        if "🚩 Red Flags" in analysis:
+            parts = analysis.split("🚩 Red Flags")
             main_analysis = parts[0].strip()
             red_flags = parts[1].strip(': \n')
 
@@ -151,5 +146,10 @@ else:
         st.write(main_analysis)
 
         if red_flags:
-            st.subheader("Red Flags")
-            st.error(red_flags)
+            # Red Flags heading with emoji
+            st.markdown("🚩 **Red Flags**")
+            # Display each flagged excerpt and explanation
+            for line in red_flags.splitlines():
+                line = line.strip()
+                if line.startswith("-") or line.startswith("•"):
+                    st.error(line.lstrip("-• \t"))
