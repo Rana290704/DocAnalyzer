@@ -138,6 +138,7 @@ else:
         # Separate Red Flags, Green Flags, and other analysis content
         red_flags = None
         green_flags = None
+        suggestions = None
         main_analysis = analysis
 
         if "🚩 Red Flags" in analysis:
@@ -154,6 +155,16 @@ else:
                 parts = analysis.split("✅ Green Flags")
                 main_analysis = parts[0].strip()
                 green_flags = parts[1].strip(': \n')
+
+        if "Suggestions" in analysis:
+            if green_flags:
+                parts = green_flags.split("Suggestions")
+                green_flags = parts[0].strip()
+                suggestions = parts[1].strip(': \n')
+            else:
+                parts = analysis.split("Suggestions")
+                main_analysis = parts[0].strip()
+                suggestions = parts[1].strip(': \n')
 
         st.subheader("Analysis")
 
@@ -172,6 +183,14 @@ else:
                 line = line.strip()
                 if line.startswith("-") or line.startswith("•"):
                     st.success(line.lstrip("-• \t"))
+
+        # Display Suggestions with highlights
+        if suggestions:
+            st.subheader("Suggested Changes")
+            for suggestion in suggestions.splitlines():
+                suggestion = suggestion.strip()
+                # Highlight each suggestion with emphasis
+                st.markdown(f"**{suggestion}**")  # Makes suggestions bold for visibility
 
         # Display remaining analysis
         st.write(main_analysis)
