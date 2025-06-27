@@ -175,6 +175,8 @@ else:
                 line = line.strip()
                 if line.startswith("-") or line.startswith("•"):
                     st.error(line.lstrip("-• \t"))
+        else:
+            st.info("No Red Flags identified.")
 
         # Display green flags
         if green_flags:
@@ -183,6 +185,8 @@ else:
                 line = line.strip()
                 if line.startswith("-") or line.startswith("•"):
                     st.success(line.lstrip("-• \t"))
+        else:
+            st.info("No Green Flags identified.")
 
         # Display Suggestions with highlights
         if suggestions:
