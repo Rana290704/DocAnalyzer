@@ -66,8 +66,8 @@ def classify_document(text):
     resp = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are a legal expert familiar with Indian law."},
-            {"role": "user", "content": prompt}
+            {"role":"system","content":"You are a legal expert familiar with Indian law."},
+            {"role":"user","content":prompt}
         ],
         max_tokens=150,
         temperature=0.7
@@ -90,8 +90,8 @@ def analyze_document_with_openai(text, doc_type):
     resp = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are a legal expert trained in Indian law."},
-            {"role": "user", "content": prompt}
+            {"role":"system","content":"You are a legal expert trained in Indian law."},
+            {"role":"user","content":prompt}
         ],
         max_tokens=2000,
         temperature=0.5
@@ -153,3 +153,5 @@ else:
                 line = line.strip()
                 if line.startswith("-") or line.startswith("•"):
                     st.error(line.lstrip("-• \t"))
+        else:
+            st.info("No Red Flags identified.")
