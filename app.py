@@ -6,30 +6,26 @@ import fitz  # PyMuPDF
 from docx import Document
 from PIL import Image
 import pytesseract
-import re # Import regex module
+import re
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Legal Document Analyzer", layout="wide", initial_sidebar_state="collapsed")
 
 # --- API Key Setup ---
-# Using the exact logic you requested.
-# Load API key from environment or Streamlit secrets
+# This setup is for OLDER openai library versions (below v1.0)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
 
 if not OPENAI_API_KEY:
-    st.error("OpenAI API key not found. Please set the OPENAI_API_KEY environment variable or add it to your Streamlit secrets.", icon="🚨")
+    st.error("OpenAI API key not found. Please set it as an environment variable or in Streamlit secrets.", icon="🚨")
     st.stop()
 
-# Initialize the OpenAI client with the key (modern method for openai > 1.0)
-try:
-    client = openai.OpenAI(api_key=OPENAI_API_KEY)
-except Exception as e:
-    st.error(f"Failed to initialize OpenAI client: {e}", icon="🚨")
-    st.stop()
+# Set the key globally for the old library
+openai.api_key = OPENAI_API_KEY
 
 
-# --- Text Extraction Functions ---
+# --- Text Extraction Functions (No changes here) ---
 def extract_pdf_text(uploaded_file):
+    # ... (code is identical)
     file_bytes = uploaded_file.read()
     text = ""
     try:
@@ -38,10 +34,11 @@ def extract_pdf_text(uploaded_file):
                 text += page.get_text("text")
     except Exception as e:
         st.warning(f"Could not read PDF directly: {e}. Falling back to OCR.")
-        text = "" # Ensure text is empty if reading fails
+        text = ""
     return text, file_bytes
 
 def ocr_pdf_bytes(file_bytes):
+    # ... (code is identical)
     text = ""
     with st.spinner("Performing OCR on PDF... this may take a moment."):
         try:
@@ -56,16 +53,18 @@ def ocr_pdf_bytes(file_bytes):
     return text
 
 def extract_docx_text(uploaded_file):
+    # ... (code is identical)
     file_stream = BytesIO(uploaded_file.read())
     doc = Document(file_stream)
     return "\n".join(p.text for p in doc.paragraphs)
 
 def extract_image_text(uploaded_file):
+    # ... (code is identical)
     with st.spinner("Performing OCR on image..."):
         image = Image.open(uploaded_file)
         return pytesseract.image_to_string(image)
 
-# --- OpenAI Functions ---
+# --- OpenAI Functions (MODIFIED FOR OLD LIBRARY) ---
 def classify_document(text):
     prompt = f"""
     Please classify the following document into one of these categories:
@@ -81,7 +80,8 @@ def classify_document(text):
     {text[:1500]}
     """
     try:
-        resp = client.chat.completions.create(
+        # OLD SYNTAX
+        resp = openai.ChatCompletion.create(
             model="gpt-4-turbo",
             messages=[
                 {"role": "system", "content": "You are a legal document classification assistant."},
@@ -96,7 +96,6 @@ def classify_document(text):
         return "Classification Failed"
 
 def analyze_document_with_openai(text, doc_type):
-    # This new prompt structure is KEY to getting reliable, parsable output.
     prompt = f"""
     You are a meticulous legal analyst specializing in Indian contract law.
     Analyze the following '{doc_type}' document. Provide a clear, structured breakdown.
@@ -126,7 +125,8 @@ def analyze_document_with_openai(text, doc_type):
     {text[:4000]}
     """
     try:
-        resp = client.chat.completions.create(
+        # OLD SYNTAX
+        resp = openai.ChatCompletion.create(
             model="gpt-4-turbo",
             messages=[
                 {"role": "user", "content": prompt}
@@ -139,24 +139,21 @@ def analyze_document_with_openai(text, doc_type):
         st.error(f"Error during analysis: {e}")
         return "Analysis Failed"
 
-# --- Helper Function for Parsing ---
+# --- Helper Function for Parsing (No changes here) ---
 def extract_section(full_text, heading):
-    """
-    Extracts a section from the text based on a Markdown-style heading.
-    """
-    # Regex to find the heading and capture everything until the next heading or end of string
+    # ... (code is identical)
     pattern = re.compile(f"### {re.escape(heading)}(.*?)(?=\n### |$)", re.S | re.I)
     match = pattern.search(full_text)
     if match:
         content = match.group(1).strip()
-        # Return None if the content is empty or says "None"
         if content.lower() in ["", "none", "none found."]:
             return None
         return content
     return None
 
-# --- Streamlit UI ---
+# --- Streamlit UI (No changes here) ---
 st.title("⚖️ Legal Document Analyzer")
+# ... (rest of the UI code is identical)
 st.markdown("Upload a document (PDF, DOCX, or Image) to get an AI-powered legal analysis.")
 
 uploaded_file = st.file_uploader("Choose a file", type=["pdf", "docx", "png", "jpg", "jpeg"])
@@ -193,10 +190,7 @@ if uploaded_file is not None:
             if analysis_text == "Analysis Failed":
                 st.stop()
 
-            # --- Display Parsed Results ---
             st.subheader("📝 Analysis Breakdown")
-
-            # Extract content using the new robust function
             red_flags = extract_section(analysis_text, "Red Flags 🚩")
             green_flags = extract_section(analysis_text, "Green Flags ✅")
             overall_analysis = extract_section(analysis_text, "Overall Analysis")
@@ -204,36 +198,27 @@ if uploaded_file is not None:
             missing_terms = extract_section(analysis_text, "Missing Terms")
             suggestions = extract_section(analysis_text, "Suggestions for Improvement")
 
-            # Display sections in a logical order
             if overall_analysis:
                 st.markdown("#### Overall Analysis")
                 st.markdown(overall_analysis)
 
-            # Display Flags first as they are most important
             if red_flags:
                 st.markdown("#### Red Flags 🚩")
                 st.error(red_flags)
-
             if green_flags:
                 st.markdown("#### Green Flags ✅")
                 st.success(green_flags)
-
             if not red_flags and not green_flags:
                 st.info("No specific Red or Green Flags were identified in the analysis.", icon="ℹ️")
-
             if ambiguous_clauses:
                 st.markdown("#### Ambiguous Clauses")
                 st.warning(ambiguous_clauses)
-                
             if missing_terms:
                 st.markdown("#### Missing Terms")
                 st.warning(missing_terms)
-
             if suggestions:
                 st.markdown("#### Suggestions for Improvement")
                 st.info(suggestions)
-
-            # Fallback to show raw analysis if parsing somehow fails
             with st.expander("View Full Raw AI Response"):
                 st.text(analysis_text)
 else:
