@@ -74,7 +74,7 @@ def classify_document(text):
     )
     return resp.choices[0].message.content.strip()
 
-# Analysis via OpenAI
+# Analysis via OpenAI, including Red Flags
 def analyze_document_with_openai(text, doc_type):
     prompt = f"""
     Analyze the following {doc_type} for ambiguous clauses, missing terms, and non-compliance with Indian law.
@@ -83,6 +83,7 @@ def analyze_document_with_openai(text, doc_type):
     2. Missing Terms
     3. Potential Non-Compliance
     4. Suggestions
+    5. Red Flags (critical issues that must be fixed before submission)
 
     Document:
     {text[:2000]}
@@ -136,5 +137,19 @@ else:
 
         with st.spinner("Analyzing…"):
             analysis = analyze_document_with_openai(text, doc_type)
+
+        # Split out Red Flags section if present
+        red_flags = None
+        main_analysis = analysis
+        if "Red Flags" in analysis:
+            parts = analysis.split("Red Flags")
+            # parts[0] ends before the keyword, parts[1] contains the section
+            main_analysis = parts[0].strip()
+            red_flags = parts[1].strip(': \n')
+
         st.subheader("Analysis")
-        st.write(analysis)
+        st.write(main_analysis)
+
+        if red_flags:
+            st.subheader("Red Flags")
+            st.error(red_flags)
