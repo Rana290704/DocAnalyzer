@@ -82,7 +82,7 @@ def analyze_document_with_openai(text, doc_type):
     2. Missing Terms
     3. Potential Non-Compliance
     4. Suggestions
-    🚩 Red Flags: For each critical issue, quote the exact text (clause or line) from the document and explain why it must be fixed before submission.
+    5. 🚩 Red Flags: For each critical issue, quote the exact text (clause or line) from the document and explain why it must be fixed before submission.
 
     Document:
     {text[:2000]}
