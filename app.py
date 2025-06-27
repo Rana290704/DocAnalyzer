@@ -160,11 +160,11 @@ else:
             if green_flags:
                 parts = green_flags.split("Suggestions")
                 green_flags = parts[0].strip()
-                suggestions = parts[1].strip(': \n')
+                suggestions = parts[1].strip(': \n') if len(parts) > 1 else None
             else:
                 parts = analysis.split("Suggestions")
                 main_analysis = parts[0].strip()
-                suggestions = parts[1].strip(': \n')
+                suggestions = parts[1].strip(': \n') if len(parts) > 1 else None
 
         st.subheader("Analysis")
 
