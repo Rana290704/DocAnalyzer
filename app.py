@@ -74,7 +74,7 @@ def classify_document(text):
     )
     return resp.choices[0].message.content.strip()
 
-# Analysis via OpenAI, including Red Flags with excerpts
+# Analysis via OpenAI, including Red Flags, Green Flags, and Excerpts
 def analyze_document_with_openai(text, doc_type):
     prompt = f"""
     Analyze the following {doc_type} for:
@@ -83,6 +83,7 @@ def analyze_document_with_openai(text, doc_type):
     3. Potential Non-Compliance
     4. Suggestions
     5. 🚩 Red Flags: For each critical issue, quote the exact text (clause or line) from the document and explain why it must be fixed before submission.
+    6. ✅ Green Flags: For clauses that are well-constructed or compliant with regulations, quote them and explain why they are good.
 
     Document:
     {text[:2000]}
@@ -134,25 +135,47 @@ else:
         with st.spinner("Analyzing…"):
             analysis = analyze_document_with_openai(text, doc_type)
 
-        # Separate main analysis and red flags
+        # Separate Red Flags, Green Flags, and other analysis content
         red_flags = None
+        green_flags = None
         main_analysis = analysis
+
         if "🚩 Red Flags" in analysis:
             parts = analysis.split("🚩 Red Flags")
             main_analysis = parts[0].strip()
             red_flags = parts[1].strip(': \n')
 
-        st.subheader("Analysis")
-        st.write(main_analysis)
+        if "✅ Green Flags" in analysis:
+            if red_flags:
+                parts = red_flags.split("✅ Green Flags")
+                red_flags = parts[0].strip()
+                green_flags = parts[1].strip(': \n')
+            else:
+                parts = analysis.split("✅ Green Flags")
+                main_analysis = parts[0].strip()
+                green_flags = parts[1].strip(': \n')
 
-        # Show red flags only if they exist
-        if red_flags and red_flags != "No Red Flags identified":
-            # Red Flags heading with emoji
+        st.subheader("Analysis")
+
+        # Display red flags
+        if red_flags:
             st.markdown("🚩 **Red Flags**")
-            # Display each flagged excerpt and explanation
             for line in red_flags.splitlines():
                 line = line.strip()
                 if line.startswith("-") or line.startswith("•"):
                     st.error(line.lstrip("-• \t"))
-        else:
-            st.info("No Red Flags identified.")
+
+        # Display green flags
+        if green_flags:
+            st.markdown("✅ **Green Flags**")
+            for line in green_flags.splitlines():
+                line = line.strip()
+                if line.startswith("-") or line.startswith("•"):
+                    st.success(line.lstrip("-• \t"))
+
+        # Display remaining analysis
+        st.write(main_analysis)
+
+        # If no flags are present, show that
+        if not red_flags and not green_flags:
+            st.info("No Red Flags or Green Flags identified.")
